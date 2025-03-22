@@ -17,6 +17,10 @@ public class Items {
     @Column(name = "val")
     public int val;
 
+    @Version
+    @Column(name = "version")
+    public int version;
+
     Items(int val){
         this.val = val;
     }
