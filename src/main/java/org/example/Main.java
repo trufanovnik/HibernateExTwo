@@ -8,6 +8,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Main {
+    private static final int NUMBER_OF_ITERATIONS = 20000;
+    private static final int COUNT_OF_ROWS = 40;
     private static final int MAX_THREAD_POOL = 8;
     private static SessionFactory sessionFactory;
 
@@ -34,7 +36,7 @@ public class Main {
     public static void fillTable() {
         Session session = sessionFactory.openSession();
         Transaction transaction = session.beginTransaction();
-        for (int i = 0; i < 40; i++){
+        for (int i = 0; i < COUNT_OF_ROWS; i++){
             session.save(new Items(0));
         }
         transaction.commit();
@@ -42,7 +44,7 @@ public class Main {
     }
 
     public static void processItems()  {
-        for (int i = 0; i < 20000; i++){
+        for (int i = 0; i < NUMBER_OF_ITERATIONS; i++){
             Session session = null;
 
             boolean retry = true;
@@ -51,7 +53,7 @@ public class Main {
                     session = sessionFactory.openSession();
                     session.beginTransaction();
 
-                    int random_id = (int) (Math.random() * 40) + 1;
+                    int random_id = (int) (Math.random() * COUNT_OF_ROWS) + 1;
                     Items item = session.get(Items.class, random_id);
 
                     synchronized (item) {
@@ -89,7 +91,7 @@ public class Main {
         session.close();
 
         System.out.println("Общая сумма: " + totalSum);
-        if (totalSum != MAX_THREAD_POOL * 20000) {
+        if (totalSum != MAX_THREAD_POOL * NUMBER_OF_ITERATIONS) {
             System.out.println("Ошибка: Сумма не соответствует ожидаемой!");
         } else {
             System.out.println("Успех: Сумма корректна!");
