@@ -1,5 +1,6 @@
 package org.example;
 
+import jakarta.persistence.OptimisticLockException;
 import org.hibernate.*;
 import org.hibernate.cfg.Configuration;
 
@@ -21,7 +22,7 @@ public class Main {
         ExecutorService executorService = Executors.newFixedThreadPool(MAX_THREAD_POOL);
 
         for (int i = 0; i < MAX_THREAD_POOL; i++){
-            executorService.submit(()-> processItems());
+            executorService.execute(()-> processItems());
         }
         executorService.shutdown();
         while (!executorService.isTerminated()) {
@@ -45,7 +46,7 @@ public class Main {
             Session session = null;
 
             boolean retry = true;
-            while (retry)
+            while (retry){
                 try {
                     session = sessionFactory.openSession();
                     session.beginTransaction();
@@ -53,16 +54,20 @@ public class Main {
                     int random_id = (int) (Math.random() * 40) + 1;
                     Items item = session.get(Items.class, random_id);
 
-                    item.setVal(item.getVal() + 1);
-                    session.save(item);
+                    synchronized (item) {
+                        item.setVal(item.getVal() + 1);
+                    }
+                    session.saveOrUpdate(item);
+//                    System.err.println(Thread.currentThread().getName() + " обновляет запись с id=" + random_id);
 
                     Thread.sleep(5);
                     session.getTransaction().commit();
+
                     retry = false;
-                } catch (StaleObjectStateException e){
+                } catch (StaleObjectStateException | OptimisticLockException e) {
                     if (session.getTransaction() != null)
                         session.getTransaction().rollback();
-                        retry = true;
+                    retry = true;
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                     break;
@@ -70,6 +75,7 @@ public class Main {
                     if (session != null)
                         session.close();
                 }
+            }
         }
     }
     public static void checkResult() {
